@@ -656,12 +656,13 @@ abstract class BaseKeyboard(
             }
             if (def is SpaceKey) {
                 spaceKeys.add(this)
-                swipeEnabled = spaceSwipeMoveCursor.getValue()
+                swipeEnabled = spaceSwipeMoveCursor.getValue() || def.swipe != null
                 swipeRepeatEnabled = true
                 swipeThresholdX = selectionSwipeThreshold
                 // Use a larger threshold for Y axis to avoid accidental up/down triggers
                 // when user intends to swipe left/right
-                swipeThresholdY = selectionSwipeThreshold * 1.5f
+                // When a custom swipe is configured, use the input swipe threshold for easier triggering
+                swipeThresholdY = if (def.swipe != null) inputSwipeThreshold else selectionSwipeThreshold * 1.5f
                 // Track the locked swipe direction to avoid conflicting gestures
                 var swipeDirectionLocked: SwipeAxis? = null
                 var verticalSwipeTriggered = false
@@ -698,9 +699,15 @@ abstract class BaseKeyboard(
                                 SwipeAxis.Y -> {
                                     if (countY != 0 && !verticalSwipeTriggered) {
                                         verticalSwipeTriggered = true
-                                        val action =
-                                            KeyAction.CandidatePageAction(if (countY > 0) 1 else -1)
-                                        onAction(action)
+                                        if (def.swipe != null) {
+                                            // Custom swipe configured — trigger macro action
+                                            onAction(def.swipe)
+                                        } else {
+                                            // Default: page up/down through candidates
+                                            val action =
+                                                KeyAction.CandidatePageAction(if (countY > 0) 1 else -1)
+                                            onAction(action)
+                                        }
                                         if (hapticOnRepeat) InputFeedbacks.hapticFeedback(view)
                                         true
                                     } else {

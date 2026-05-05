@@ -567,6 +567,9 @@ class TextKeyboard(
             SpaceKeyLabelMode.SubModeOnly -> {
                 if (subModeText.isNotEmpty()) subModeText else ime.displayName
             }
+            SpaceKeyLabelMode.NoLabel -> {
+                ""
+            }
         }
         ensureSpecialKeyViewsInitialized()
         specialKeyViews.space.forEach { spaceKey ->

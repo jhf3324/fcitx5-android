@@ -76,6 +76,7 @@
     <string name="add_to_favorites">Add to Favorites</string>
     <string name="remove_from_favorites">Remove from Favorites</string>
     <string name="delete">Delete</string>
+    
     <string name="clipboard">Clipboard</string>
     <string name="clipboard_category_all">All</string>
     <string name="clipboard_category_favorites">Favorites</string>
@@ -151,6 +152,7 @@
     <string name="navbar_bkg_full">Keyboard background image</string>
     <string name="punctuation_position">Punctuation position</string>
     <string name="punctuation_pos_bottom">Bottom</string>
+    <string name="punctuation_pos_top">Top</string>
     <string name="punctuation_pos_top_right">Top Right</string>
     <string name="punctuation_pos_none">None</string>
     <string name="expand_toolbar_by_default">Expand toolbar by default</string>
@@ -294,6 +296,7 @@
     <string name="space_key_label_mode_default">Default</string>
     <string name="space_key_label_mode_compact_when_submode">Compact when submode is active</string>
     <string name="space_key_label_mode_submode_only">Submode only</string>
+    <string name="space_key_label_mode_no_label">No label</string>
     <string name="show_lang_switch_key">Show language switch key</string>
     <string name="horizontal_candidate_style">Horizontal candidate style</string>
     <string name="horizontal_candidate_never_fill">Never fill width</string>

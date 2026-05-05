@@ -412,26 +412,46 @@ class SpaceKey(
     backgroundColor: Int? = null,
     backgroundColorMonet: String? = null,
     shadowColor: Int? = null,
-    shadowColorMonet: String? = null
+    shadowColorMonet: String? = null,
+    val swipe: MacroAction? = null,
+    val swipeLabel: String? = null
 ) : KeyDef(
-    Appearance.Text(
-        displayText = " ",
-        textSize = 13f,
-        percentWidth = percentWidth,
-        border = Border.Special,
-        viewId = R.id.button_space,
-        soundEffect = InputFeedbacks.SoundEffect.SpaceBar,
-        textColor = textColor,
-        textColorMonet = textColorMonet,
-        backgroundColor = backgroundColor,
-        backgroundColorMonet = backgroundColorMonet,
-        shadowColor = shadowColor,
-        shadowColorMonet = shadowColorMonet
-    ),
-    setOf(
-        Behavior.Press(KeyAction.SymAction(KeySym(FcitxKeyMapping.FcitxKey_space))),
-        Behavior.LongPress(KeyAction.SpaceLongPressAction)
-    )
+    if (swipeLabel.isNullOrEmpty()) {
+        Appearance.Text(
+            displayText = " ",
+            textSize = 13f,
+            percentWidth = percentWidth,
+            border = Border.Special,
+            viewId = R.id.button_space,
+            soundEffect = InputFeedbacks.SoundEffect.SpaceBar,
+            textColor = textColor,
+            textColorMonet = textColorMonet,
+            backgroundColor = backgroundColor,
+            backgroundColorMonet = backgroundColorMonet,
+            shadowColor = shadowColor,
+            shadowColorMonet = shadowColorMonet
+        )
+    } else {
+        Appearance.AltText(
+            displayText = " ",
+            altText = swipeLabel,
+            character = " ",
+            textSize = 13f,
+            percentWidth = percentWidth,
+            border = Border.Special,
+            viewId = R.id.button_space,
+            textColor = textColor,
+            textColorMonet = textColorMonet,
+            backgroundColor = backgroundColor,
+            backgroundColorMonet = backgroundColorMonet,
+            shadowColor = shadowColor,
+            shadowColorMonet = shadowColorMonet
+        )
+    },
+    buildSet {
+        add(Behavior.Press(KeyAction.SymAction(KeySym(FcitxKeyMapping.FcitxKey_space))))
+        add(Behavior.LongPress(KeyAction.SpaceLongPressAction))
+    }
 )
 
 class ReturnKey(

@@ -58,6 +58,7 @@ import org.fxboomk.fcitx5.android.input.broadcast.PreeditEmptyStateComponent
 import org.fxboomk.fcitx5.android.input.broadcast.PunctuationComponent
 import org.fxboomk.fcitx5.android.input.broadcast.ReturnKeyDrawableComponent
 import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent
+import org.fxboomk.fcitx5.android.input.candidates.pagedvertical.PagedVerticalCandidatesComponent
 import org.fxboomk.fcitx5.android.input.predict.AiSuggestionOverlay
 import org.fxboomk.fcitx5.android.input.predict.AiSuggestionStripComponent
 import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener
@@ -92,6 +93,7 @@ import org.mechdancer.dependency.manager.wrapToUniqueComponent
 import org.mechdancer.dependency.plusAssign
 import splitties.dimensions.dp
 import splitties.views.dsl.constraintlayout.above
+import splitties.views.dsl.constraintlayout.before
 import splitties.views.dsl.constraintlayout.below
 import splitties.views.dsl.constraintlayout.bottomOfParent
 import splitties.views.dsl.constraintlayout.centerHorizontally
@@ -1113,6 +1115,7 @@ class InputView(
     private val preeditEmptyState = PreeditEmptyStateComponent()
     private val preedit = PreeditComponent()
     private val commonKeyActionListener = CommonKeyActionListener()
+
     private val windowManager = InputWindowManager()
     private val kawaiiBar = KawaiiBarComponent()
     private val aiSuggestionStrip = AiSuggestionStripComponent(service, themedContext)
@@ -1127,6 +1130,7 @@ class InputView(
         onSuggestionClick = { suggestion -> aiSuggestionStrip.commitSuggestionFromUi(suggestion) }
     }
     private val horizontalCandidate = HorizontalCandidateComponent()
+    private val pagedVerticalCandidate = PagedVerticalCandidatesComponent()
     private val keyboardWindow = KeyboardWindow()
     private val symbolPicker = symbolPicker()
     private val emojiPicker = emojiPicker()
@@ -1154,6 +1158,7 @@ class InputView(
         scope += kawaiiBar
         scope += aiSuggestionStrip
         scope += horizontalCandidate
+        scope += pagedVerticalCandidate
         scope += ButtonsAdjustingWindow
         broadcaster.onScopeSetupFinished(scope)
     }
@@ -2074,18 +2079,22 @@ class InputView(
                 topOfParent()
                 centerHorizontally()
             })
+            add(pagedVerticalCandidate.view, lParams(matchParent, wrapContent) {
+                topOfParent()
+                centerHorizontally()
+            })
             add(leftPaddingSpace, lParams {
-                below(kawaiiBar.view)
+                below(pagedVerticalCandidate.view)
                 startOfParent()
                 bottomOfParent()
             })
             add(rightPaddingSpace, lParams {
-                below(kawaiiBar.view)
+                below(pagedVerticalCandidate.view)
                 endOfParent()
                 bottomOfParent()
             })
             add(windowManager.view, lParams {
-                below(kawaiiBar.view)
+                below(pagedVerticalCandidate.view)
                 above(bottomPaddingSpace)
                 /**
                  * set start and end constrain in [updateKeyboardSize]

@@ -665,7 +665,7 @@ class KeyEditorActivity : AppCompatActivity() {
                 ).forEach { fieldsContainer.addView(it) }
             }
 
-            "CapsKey", "ReturnKey", "BackspaceKey" -> {
+            "CapsKey", "ReturnKey", "BackspaceKey", "SpaceKey" -> {
                 if (!disableWeightEditing) {
                     val weightEdit = uiBuilder.createEditField(
                         getString(R.string.text_keyboard_layout_key_weight),
@@ -705,7 +705,7 @@ class KeyEditorActivity : AppCompatActivity() {
                 ).forEach { fieldsContainer.addView(it) }
             }
 
-            "CommaKey", "LanguageKey", "SpaceKey" -> {
+            "CommaKey", "LanguageKey" -> {
                 if (!disableWeightEditing) {
                     val weightEdit = uiBuilder.createEditField(
                         getString(R.string.text_keyboard_layout_key_weight),
@@ -1253,7 +1253,7 @@ class KeyEditorActivity : AppCompatActivity() {
                 }
             }
 
-            "CapsKey", "ReturnKey", "BackspaceKey" -> {
+            "CapsKey", "ReturnKey", "BackspaceKey", "SpaceKey" -> {
                 val swipeLabel = nonMacroSwipeLabelEdit?.text?.toString()?.trim().orEmpty()
                 if (swipeLabel.isNotEmpty()) draft["swipeLabel"] = swipeLabel
                 if (!disableWeightEditing) {
@@ -1264,7 +1264,7 @@ class KeyEditorActivity : AppCompatActivity() {
                 }
             }
 
-            "CommaKey", "LanguageKey", "SpaceKey" -> {
+            "CommaKey", "LanguageKey" -> {
                 if (!disableWeightEditing) {
                     parseWeight(simpleWeightEdit?.text?.toString())?.let { draft["weight"] = it }
                 }
@@ -1678,7 +1678,7 @@ class KeyEditorActivity : AppCompatActivity() {
                 }
             }
 
-            "CapsKey", "ReturnKey", "BackspaceKey" -> {
+            "CapsKey", "ReturnKey", "BackspaceKey", "SpaceKey" -> {
                 val swipeLabel = nonMacroSwipeLabelEdit?.text?.toString()?.trim().orEmpty()
                 if (swipeLabel.isNotEmpty()) newKey["swipeLabel"] = swipeLabel
                 if (!disableWeightEditing) {
@@ -1689,7 +1689,7 @@ class KeyEditorActivity : AppCompatActivity() {
                 }
             }
 
-            "CommaKey", "LanguageKey", "SpaceKey" -> {
+            "CommaKey", "LanguageKey" -> {
                 if (!disableWeightEditing) {
                     parseWeight(simpleWeightEdit?.text?.toString())?.let { newKey["weight"] = it }
                 }

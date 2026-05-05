@@ -497,6 +497,8 @@ object LayoutJsonUtils {
             }
             is SpaceKey -> {
                 json["weight"] = appearance.percentWidth
+                keyDef.swipeLabel?.let { json["swipeLabel"] = it }
+                keyDef.swipe?.let { json["swipe"] = macroActionToJson(it) }
             }
             is SymbolKey -> {
                 json["label"] = keyDef.symbol
@@ -682,6 +684,8 @@ object LayoutJsonUtils {
             )
             "SpaceKey" -> SpaceKey(
                 percentWidth = key.weight ?: 0f,
+                swipe = key.swipe,
+                swipeLabel = key.swipeLabel,
                 textColor = key.textColor,
                 textColorMonet = key.textColorMonet,
                 backgroundColor = key.backgroundColor,
