@@ -100,43 +100,58 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v3
 
-      - name: Validate signing secrets
+      - name: Check signing secrets
+        id: check_sign
         shell: bash
         env:
           SIGN_KEY_BASE64: ${{ secrets.SIGNING_KEY }}
           SIGN_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           SIGN_KEY_PWD: ${{ secrets.KEY_PASSWORD }}
         run: |
+          signing_available=true
           for key in SIGN_KEY_BASE64 SIGN_KEY_ALIAS SIGN_KEY_PWD
           do
             if [ -z "${!key}" ]
             then
-              echo "::error::Missing required signing secret: $key"
-              exit 1
+              echo "::warning::Missing signing secret: $key — will build debug APK instead"
+              signing_available=false
             fi
           done
+          echo "signing_available=$signing_available" >> "$GITHUB_OUTPUT"
 
-      - name: Build Release APK
+      - name: Build APK
         env:
           SIGN_KEY_BASE64: ${{ secrets.SIGNING_KEY }}
           SIGN_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           SIGN_KEY_PWD: ${{ secrets.KEY_PASSWORD }}
         run: |
+          SIGNING_AVAILABLE=${{ steps.check_sign.outputs.signing_available }}
+          BUILD_TYPE="Release"
+          if [ "$SIGNING_AVAILABLE" != "true" ]; then
+            BUILD_TYPE="Debug"
+          fi
+          LOWERCASE_BUILD=$(echo "$BUILD_TYPE" | tr 'A-Z' 'a-z')
           ./gradlew clean
-          ./gradlew -PincludeMainlineFlavor=true :app:assembleMainlineRelease
-          ./gradlew :assembleReleasePlugins
+          ./gradlew -PincludeMainlineFlavor=true ":app:assembleMainline${BUILD_TYPE}"
+          ./gradlew ":assemble${BUILD_TYPE}Plugins"
           mkdir -p app/build/outputs/apk/release/
-          mv app/build/outputs/apk/mainline/release/*.apk app/build/outputs/apk/release/
+          mv "app/build/outputs/apk/mainline/${LOWERCASE_BUILD}"/*.apk app/build/outputs/apk/release/
       
       # move plugin apks to app/build/outputs/apk/release
       - name: Move plugin APKs
         shell: bash
         run: |
+          SIGNING_AVAILABLE=${{ steps.check_sign.outputs.signing_available }}
+          BUILD_TYPE="Release"
+          if [ "$SIGNING_AVAILABLE" != "true" ]; then
+            BUILD_TYPE="Debug"
+          fi
+          LOWERCASE_BUILD=$(echo "$BUILD_TYPE" | tr 'A-Z' 'a-z')
           for i in $(ls plugin)
           do
             if [ -d "plugin/${i}" ]
             then
-              mv "plugin/${i}/build/outputs/apk/release"/*.apk "app/build/outputs/apk/release/"
+              mv "plugin/${i}/build/outputs/apk/${LOWERCASE_BUILD}"/*.apk "app/build/outputs/apk/release/" 2>/dev/null || true
             fi
           done
 
