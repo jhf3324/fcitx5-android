@@ -131,9 +131,7 @@ jobs:
             BUILD_TYPE="Debug"
           fi
           LOWERCASE_BUILD=$(echo "$BUILD_TYPE" | tr 'A-Z' 'a-z')
-          ./gradlew clean
-          ./gradlew -PincludeMainlineFlavor=true ":app:assembleMainline${BUILD_TYPE}"
-          ./gradlew ":assemble${BUILD_TYPE}Plugins"
+          ./gradlew -PincludeMainlineFlavor=true clean ":app:assembleMainline${BUILD_TYPE}" ":assemble${BUILD_TYPE}Plugins"
           mkdir -p app/build/outputs/apk/release/
           mv "app/build/outputs/apk/mainline/${LOWERCASE_BUILD}"/*.apk app/build/outputs/apk/release/
       
