@@ -20,13 +20,8 @@ jobs:
       matrix:
         os:
           - ubuntu-22.04
-          #- macos-13
-          #- windows-2022
         abi:
-          #- armeabi-v7a
           - arm64-v8a
-          #- x86
-          #- x86_64
     env:
       BUILD_ABI: ${{ matrix.abi }}
     steps:
@@ -43,20 +38,11 @@ jobs:
 
       - name: Remove non-semver local tags to avoid confusion
         run: |
-          # keep tags like 0.1.2 or v0.1.2 but delete others (nightly/latest/short-sha)
           git for-each-ref --format='%(refname:strip=2)' refs/tags | while read tag; do
-              # allow v1.2 or v1.2.3.4 etc: one or more dot-separated numeric segments
-              # use POSIX-compatible groups for bash (no (?: ) non-capturing groups)
               if [[ ! "$tag" =~ ^v?[0-9]+(\.[0-9]+)+(-.*)?$ ]]; then
               git tag -d "$tag" || true
             fi
           done
-
-      #- name: Regenerate symlinks pointing to submodule (Windows)
-      #  if: ${{ matrix.os == 'windows-2022' }}
-      #  run: |
-      #    Remove-Item -Recurse app/src/main/assets/usr/share
-      #    git checkout -- *
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -77,20 +63,8 @@ jobs:
           sudo apt update
           sudo apt install extra-cmake-modules gettext
 
-      #- name: Install system dependencies (macOS)
-      #  if: ${{ matrix.os == 'macos-13' }}
-      #  run: |
-      #    brew install extra-cmake-modules
-
-      #- name: Install system dependencies (Windows)
-      #  if: ${{ matrix.os == 'windows-2022' }}
-      #  run: |
-      #    C:/msys64/usr/bin/pacman -S --noconfirm mingw-w64-ucrt-x86_64-gettext mingw-w64-ucrt-x86_64-extra-cmake-modules
-      #    Add-Content $env:GITHUB_PATH "C:/msys64/ucrt64/bin"
-
       - name: Prepare personal build sources
         env:
-          # FCITX5_RIME_REPO: https://github.com/fxliang/fcitx5-rime.git
           FCITX5_RIME_REPO: https://github.com/fcitx/fcitx5-rime.git
           PREBUILT_REPO: https://github.com/boomker/f5a-prebuilt.git
           PREBUILDER_REPO: https://github.com/boomker/f5a-prebuilder.git
@@ -100,56 +74,48 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v3
 
-      - name: Check signing secrets
-        id: check_sign
+      - name: Setup signing key
+        id: sign_setup
         shell: bash
         env:
           SIGN_KEY_BASE64: ${{ secrets.SIGNING_KEY }}
           SIGN_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           SIGN_KEY_PWD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          signing_available=true
-          for key in SIGN_KEY_BASE64 SIGN_KEY_ALIAS SIGN_KEY_PWD
-          do
-            if [ -z "${!key}" ]
-            then
-              echo "::warning::Missing signing secret: $key — will build debug APK instead"
-              signing_available=false
-            fi
-          done
-          echo "signing_available=$signing_available" >> "$GITHUB_OUTPUT"
+          if [ -n "$SIGN_KEY_BASE64" ] && [ -n "$SIGN_KEY_ALIAS" ] && [ -n "$SIGN_KEY_PWD" ]; then
+            echo "Using configured signing secrets"
+            echo "SIGN_KEY_ALIAS=$SIGN_KEY_ALIAS" >> "$GITHUB_ENV"
+            echo "SIGN_KEY_PWD=$SIGN_KEY_PWD" >> "$GITHUB_ENV"
+            echo "SIGN_KEY_BASE64<<EOF" >> "$GITHUB_ENV"
+            echo "$SIGN_KEY_BASE64" >> "$GITHUB_ENV"
+            echo "EOF" >> "$GITHUB_ENV"
+          else
+            echo "::warning::Signing secrets not configured 鈥?generating temporary CI signing key"
+            keytool -genkey -v -keystore ci_release.keystore -alias ci_key \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass cipass -keypass cipass \
+              -dname "CN=CI, OU=CI, O=CI, L=Unknown, ST=Unknown, C=CN" 2>/dev/null
+            echo "SIGN_KEY_FILE=$(pwd)/ci_release.keystore" >> "$GITHUB_ENV"
+            echo "SIGN_KEY_ALIAS=ci_key" >> "$GITHUB_ENV"
+            echo "SIGN_KEY_PWD=cipass" >> "$GITHUB_ENV"
+          fi
 
       - name: Build APK
-        env:
-          SIGN_KEY_BASE64: ${{ secrets.SIGNING_KEY }}
-          SIGN_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          SIGN_KEY_PWD: ${{ secrets.KEY_PASSWORD }}
+        shell: bash
         run: |
-          SIGNING_AVAILABLE=${{ steps.check_sign.outputs.signing_available }}
-          BUILD_TYPE="Release"
-          if [ "$SIGNING_AVAILABLE" != "true" ]; then
-            BUILD_TYPE="Debug"
-          fi
-          LOWERCASE_BUILD=$(echo "$BUILD_TYPE" | tr 'A-Z' 'a-z')
-          ./gradlew -PincludeMainlineFlavor=true clean ":app:assembleMainline${BUILD_TYPE}" ":assemble${BUILD_TYPE}Plugins"
+          ./gradlew -PincludeMainlineFlavor=true clean ":app:assembleMainlineRelease" ":assembleReleasePlugins"
           mkdir -p app/build/outputs/apk/release/
-          mv "app/build/outputs/apk/mainline/${LOWERCASE_BUILD}"/*.apk app/build/outputs/apk/release/
-      
+          mv "app/build/outputs/apk/mainline/release"/*.apk app/build/outputs/apk/release/
+
       # move plugin apks to app/build/outputs/apk/release
       - name: Move plugin APKs
         shell: bash
         run: |
-          SIGNING_AVAILABLE=${{ steps.check_sign.outputs.signing_available }}
-          BUILD_TYPE="Release"
-          if [ "$SIGNING_AVAILABLE" != "true" ]; then
-            BUILD_TYPE="Debug"
-          fi
-          LOWERCASE_BUILD=$(echo "$BUILD_TYPE" | tr 'A-Z' 'a-z')
           for i in $(ls plugin)
           do
             if [ -d "plugin/${i}" ]
             then
-              mv "plugin/${i}/build/outputs/apk/${LOWERCASE_BUILD}"/*.apk "app/build/outputs/apk/release/" 2>/dev/null || true
+              mv "plugin/${i}/build/outputs/apk/release"/*.apk "app/build/outputs/apk/release/" 2>/dev/null || true
             fi
           done
 
