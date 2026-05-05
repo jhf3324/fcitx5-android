@@ -1,4 +1,4 @@
-/*
+﻿/*
  * SPDX-License-Identifier: LGPL-2.1-or-later
  * SPDX-FileCopyrightText: Copyright 2021-2025 Fcitx5 for Android Contributors
  */
@@ -36,9 +36,7 @@ import org.fxboomk.fcitx5.android.data.clipboard.db.ClipboardEntry
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreference
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
-import org.fxboomk.fcitx5.android.input.bar.ExpandButtonStateMachine.State.ClickToAttachWindow
-import org.fxboomk.fcitx5.android.input.bar.ExpandButtonStateMachine.State.ClickToDetachWindow
-import org.fxboomk.fcitx5.android.input.bar.ExpandButtonStateMachine.State.Hidden
+import org.fxboomk.fcitx5.android.input.bar.ExpandButtonStateMachine
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarStateMachine.BooleanKey.CandidateEmpty
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarStateMachine.BooleanKey.PreeditEmpty
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarStateMachine.TransitionEvent.CandidatesUpdated
@@ -54,11 +52,8 @@ import org.fxboomk.fcitx5.android.input.config.ButtonsLayoutConfig
 import org.fxboomk.fcitx5.android.input.config.ConfigProviders
 import org.fxboomk.fcitx5.android.input.config.ConfigurableButton
 import org.fxboomk.fcitx5.android.input.broadcast.InputBroadcastReceiver
-import org.fxboomk.fcitx5.android.input.candidates.expanded.ExpandedCandidateStyle
-import org.fxboomk.fcitx5.android.input.candidates.expanded.window.FlexboxExpandedCandidateWindow
-import org.fxboomk.fcitx5.android.input.candidates.expanded.window.GridExpandedCandidateWindow
-import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesMode
 import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent
+import org.fxboomk.fcitx5.android.input.candidates.pagedvertical.PagedVerticalCandidatesComponent
 import org.fxboomk.fcitx5.android.input.clipboard.ClipboardWindow
 import org.fxboomk.fcitx5.android.input.dependency.UniqueViewComponent
 import org.fxboomk.fcitx5.android.input.dependency.context
@@ -70,6 +65,7 @@ import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView
 import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fxboomk.fcitx5.android.input.popup.PopupComponent
+import org.fxboomk.fcitx5.android.input.preedit.PreeditComponent
 import org.fxboomk.fcitx5.android.input.status.StatusAreaWindow
 import org.fxboomk.fcitx5.android.input.wm.InputWindow
 import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
@@ -108,8 +104,10 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     private val fcitx by manager.fcitx()
     private val windowManager: InputWindowManager by manager.must()
     private val horizontalCandidate: HorizontalCandidateComponent by manager.must()
+    private val pagedVerticalCandidate: PagedVerticalCandidatesComponent by manager.must()
     private val commonKeyActionListener: CommonKeyActionListener by manager.must()
     private val popup: PopupComponent by manager.must()
+    private val preeditComponent: PreeditComponent by manager.must()
 
     var onFloatingToggleListener: (() -> Unit)? = null
     var onFloatingLongPressListener: (() -> Unit)? = null
@@ -224,13 +222,6 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
     private val hideKeyboardCallback = View.OnClickListener {
         service.requestHideSelf(0)
-    }
-
-    private val swipeDownExpandCallback = CustomGestureView.OnGestureListener { _, e ->
-        if (e.type == CustomGestureView.GestureType.Up && e.totalY > 0) {
-            service.requestHideSelf(0)
-            true
-        } else false
     }
 
     // Combined gesture: determine primary direction by comparing totalX and totalY.
@@ -498,13 +489,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     }
 
     private val candidateUi by lazy {
-        CandidateUi(context, theme, horizontalCandidate.view).apply {
-            expandButton.apply {
-                swipeEnabled = true
-                swipeThresholdY = dp(HEIGHT.toFloat())
-                onGestureListener = swipeDownExpandCallback
-            }
-        }
+        CandidateUi(context)
     }
 
     private val titleUi by lazy {
@@ -515,51 +500,9 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         switchUiByState(it)
     }
 
-    val expandButtonStateMachine = ExpandButtonStateMachine.new {
-        when (it) {
-            ClickToAttachWindow -> {
-                setExpandButtonToAttach()
-                setExpandButtonEnabled(true)
-            }
-
-            ClickToDetachWindow -> {
-                setExpandButtonToDetach()
-                setExpandButtonEnabled(true)
-            }
-
-            Hidden -> {
-                setExpandButtonEnabled(false)
-            }
-        }
-    }
-
-    // set expand candidate button to create expand candidate
-    private fun setExpandButtonToAttach() {
-        candidateUi.expandButton.setOnClickListener {
-            windowManager.attachWindow(
-                when (expandedCandidateStyle) {
-                    ExpandedCandidateStyle.Grid -> GridExpandedCandidateWindow()
-                    ExpandedCandidateStyle.Flexbox -> FlexboxExpandedCandidateWindow()
-                }
-            )
-        }
-        candidateUi.expandButton.setIcon(R.drawable.ic_baseline_expand_more_24)
-        candidateUi.expandButton.contentDescription = context.getString(R.string.expand_candidates_list)
-    }
-
-    // set expand candidate button to close expand candidate
-    private fun setExpandButtonToDetach() {
-        candidateUi.expandButton.setOnClickListener {
-            windowManager.attachWindow(KeyboardWindow)
-        }
-        candidateUi.expandButton.setIcon(R.drawable.ic_baseline_expand_less_24)
-        candidateUi.expandButton.contentDescription = context.getString(R.string.hide_candidates_list)
-    }
-
-    // should be used with setExpandButtonToAttach or setExpandButtonToDetach
-    private fun setExpandButtonEnabled(enabled: Boolean) {
-        candidateUi.expandButton.visibility = if (enabled) View.VISIBLE else View.INVISIBLE
-    }
+    // expandButtonStateMachine kept as a no-op stub for other components that reference it.
+    // The expand/collapse buttons have been removed from the UI.
+    val expandButtonStateMachine = ExpandButtonStateMachine.new { /* no-op */ }
 
     private fun switchUiByState(state: KawaiiBarStateMachine.State) {
         val index = state.ordinal
@@ -651,17 +594,17 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         barStateMachine.push(PreeditUpdated, PreeditEmpty to empty)
     }
 
-    override fun onCandidateUpdate(data: CandidateListEvent.Data) {
-        // When using "Always" floating mode, don't show candidates in Kawaii Bar
-        val floatingMode = AppPrefs.getInstance().candidates.mode.getValue()
-        val useFloatingAlways = floatingMode == FloatingCandidatesMode.Always
+    override fun onPagedCandidateUpdate(data: org.fxboomk.fcitx5.android.core.FcitxEvent.PagedCandidateEvent.Data) {
+        // Page buttons have been removed
+    }
 
-        if (useFloatingAlways) {
-            // Force stay in Idle state when using floating candidates
-            barStateMachine.push(CandidatesUpdated, CandidateEmpty to true)
-        } else {
-            barStateMachine.push(CandidatesUpdated, CandidateEmpty to data.candidates.isEmpty())
-        }
+    override fun onInputPanelUpdate(data: org.fxboomk.fcitx5.android.core.FcitxEvent.InputPanelEvent.Data) {
+        // Preedit text is displayed by PreeditComponent; do not show it in candidate bar.
+        // PreeditComponent handles its own visibility.
+    }
+
+    override fun onCandidateUpdate(data: CandidateListEvent.Data) {
+        barStateMachine.push(CandidatesUpdated, CandidateEmpty to data.candidates.isEmpty())
     }
 
     override fun onWindowAttached(window: InputWindow) {
@@ -745,7 +688,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     }
 
     companion object {
-        const val HEIGHT = 40
+        const val HEIGHT = 48
     }
 
     private fun updateButtonsState() {
@@ -758,3 +701,4 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     }
 
 }
+
