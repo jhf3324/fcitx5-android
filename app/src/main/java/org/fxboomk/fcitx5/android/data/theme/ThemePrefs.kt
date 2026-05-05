@@ -1,4 +1,4 @@
-/*
+﻿/*
  * SPDX-License-Identifier: LGPL-2.1-or-later
  * SPDX-FileCopyrightText: Copyright 2023 Fcitx5 for Android Contributors
  */
@@ -134,7 +134,8 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
     enum class PunctuationPosition(override val stringRes: Int) : ManagedPreferenceEnum {
         None(R.string.punctuation_pos_none),
         Bottom(R.string.punctuation_pos_bottom),
-        TopRight(R.string.punctuation_pos_top_right);
+        TopRight(R.string.punctuation_pos_top_right),
+        Top(R.string.punctuation_pos_top);
     }
 
     val punctuationPosition = enumList(
@@ -287,3 +288,4 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         gboardNonMainKeyOpacity.key
     )
 }
+
