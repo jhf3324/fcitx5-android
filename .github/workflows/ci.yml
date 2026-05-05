@@ -164,7 +164,21 @@ jobs:
           name: app-${{ matrix.os }}-${{ matrix.abi }}-with-plugins
           path: app/build/outputs/apk/release/*.apk
 
-      # create nightly release - only main APK and RIME plugin
+      # only keep main APK (no "plugin" in name) and RIME plugin
+      - name: Filter APKs for release
+        shell: bash
+        run: |
+          mkdir -p app/build/outputs/apk/release_filtered
+          for apk in app/build/outputs/apk/release/*.apk; do
+            name="$(basename "$apk")"
+            if [[ ! "$name" == *".plugin."* ]] || [[ "$name" == *".plugin.rime."* ]]; then
+              cp "$apk" app/build/outputs/apk/release_filtered/
+              echo "Keeping: $name"
+            else
+              echo "Skipping: $name"
+            fi
+          done
+
       - name: Create Nightly release
         uses: 'marvinpinto/action-automatic-releases@latest'
         with:
@@ -173,6 +187,5 @@ jobs:
           prerelease: true
           title: "Nightly Build"
           files: |
-            app/build/outputs/apk/release/app-*.apk
-            app/build/outputs/apk/release/*rime*.apk
+            app/build/outputs/apk/release_filtered/*.apk
 
